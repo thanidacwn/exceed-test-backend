@@ -36,12 +36,12 @@ def find_available_locker() -> List:
 
 
 @router.get("/return_items/{user_id}")
-def return_item(user_id) -> any:
+def return_item(user_id):
     """This function is use for return item process.
 
     It will check if user already done the payment or not before return it.
     """
-    data = collection.find_one({"user.uer_id": user_id}, {"_id": False})
+    data = collection.find_one({"user.user_id": user_id}, {"_id": False})
     print(data)
     if data is None:
         raise HTTPException(
