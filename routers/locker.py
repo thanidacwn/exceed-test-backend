@@ -100,7 +100,7 @@ def rent_locker(locker_num: str, item: List[str] = Body(), user_id = Body(), dur
         raise HTTPException(status_code=400, detail="Locker not found")
     locker_available = collection.find({"locker_num": locker_num})
 
-    if locker_available["is_available" == False]:
+    if locker_available[0]["is_available"]  == False:
         raise HTTPException(status_code=400, detail="Locker is not available")
     user = {
 		"user_id": user_id,
