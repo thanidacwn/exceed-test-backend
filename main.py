@@ -10,3 +10,4 @@ app.include_router(locker.router)
 def root():
     """ Root page of the API """
     return {"msg": "welcome to group8 root page สุดเท่"}
+
