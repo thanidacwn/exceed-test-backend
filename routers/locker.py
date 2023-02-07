@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.encoders import jsonable_encoder
-from typing import Union, Optional, List
-from pydantic import BaseModel, BaseConfig
+from typing import Union, List
+from pydantic import BaseModel
 from database.mongo_connection import *
-import time, datetime
+import time
 
 
 router = APIRouter(
@@ -20,6 +20,7 @@ class User(BaseModel):
     start_time: int
     end_time: int
 
+
 class Locker(BaseModel):
     locker_num: str
     is_available: bool
@@ -28,6 +29,7 @@ class Locker(BaseModel):
 
 @router.put("/update/{locker_num}")
 def update_locker(locker_num: str, locker_status: bool = Body(), new_user : User |  None = Body()):
+    """ Update locker status and user information"""
     user_update = jsonable_encoder(new_user)
     collection.update_one(
         {
@@ -40,6 +42,7 @@ def update_locker(locker_num: str, locker_status: bool = Body(), new_user : User
 
 @router.get("/rent/{locker_num}")
 def rent_locker(locker_num: str, item: List[str] = Body(), user_id = Body(), duration: int = Body()):
+    """ Rent a locker for a specific duration"""
     if locker_num not in ["01", '02', '03', '04', '05', '06']:
         raise HTTPException(status_code=400, detail="Locker not found")
     locker_available = collection.find({"locker_num": locker_num})
@@ -59,6 +62,7 @@ def rent_locker(locker_num: str, item: List[str] = Body(), user_id = Body(), dur
 
 @router.get("/clear/{locker_num}")
 def clear_locker(locker_num: str):
+    """ Clear a locker"""
     if locker_num not in ["01", '02', '03', '04', '05', '06']:
         raise HTTPException(status_code=400, detail="Locker not found")
     locker_available = collection.find({"locker_num": locker_num})
