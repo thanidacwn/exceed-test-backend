@@ -1,8 +1,7 @@
-from fastapi import FastAPI, HTTPException, Body
-from datetime import date
+from fastapi import FastAPI
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from routers import locker
 import os
 
 load_dotenv(".env")
@@ -15,3 +14,10 @@ client = MongoClient(
 
 db = client["exceed08"]
 collection = db["locker_management_collection"]
+
+app = FastAPI()
+app.include_router(locker.router)
+
+@app.get("/")
+def root():
+    return {"msg": "welcome to group8 root page สุดเท่"}
