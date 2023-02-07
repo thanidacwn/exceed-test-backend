@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Body, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Union, Optional, List
 from pydantic import BaseModel
 import time
@@ -15,9 +16,9 @@ router = APIRouter(
 class User(BaseModel):
     user_id: str
     item: List[str]
-    duration: timedelta
-    start_time: datetime
-    end_time: datetime
+    duration: int
+    start_time: int
+    end_time: int
 
 
 class Locker(BaseModel):
@@ -26,19 +27,20 @@ class Locker(BaseModel):
     user: Union[User, None]
 
 def extra_fee(user:User):
-    actual_duration = ((user.end_time.total_seconds()*0.0166667) - (user.start_time.total_seconds()*0.0166667))
-    if actual_duration > (user.duration*60):
-        charge_fee = int(ceil(actual_duration - (user.duration*60))*20)
+    actual_duration = (user['end_time'] - user['start_time'])
+    user_duration = user['duration']*3600
+    if actual_duration > (user_duration):
+        charge_fee = ceil((actual_duration - user_duration)/360)*20
         return charge_fee
     return 0
 
 def total_cost(user:User):
     total = 0
-    extra_duration = user.duration - 2
+    extra_duration = user['duration'] - 2
     if extra_duration > 0:
-        total += int((ceil(extra_duration) * 5))
+        total += extra_duration * 5
     add_fee = extra_fee(user)
-    total += int(add_fee)
+    total += add_fee
     return total
 
 def payment(amount:int, user:User):
@@ -58,17 +60,30 @@ def find_available_locker() -> List:
         available_lockers += [i]
     return available_lockers
 
-@router.get("/return_items/{user_id}")
-def return_item(user_id):
+@router.get("/return_items/{user_id}/{amount}")
+def return_item(user_id, amount: int):
     """This function is use for return item process.
 
     It will check if user already done the payment or not before return it.
     """
     data = collection.find_one({"user.user_id": user_id}, {"_id": False})
-    print(data)
     if data is None:
         raise HTTPException(
             status_code=400, detail="This user does not rent any locker."
         )
-    return {"msg": "return success"}
+    msg = payment(amount, data['user'])
+    return {"msg": msg}
 
+@router.get("/total_fee/{locker_id}")
+def show_fee(locker_id: str):
+    data = collection.find({"locker_num": locker_id})
+    cost = total_cost(data[0]['user'])
+    return {"msg": f"your total cost is {cost} Bath"}
+
+if __name__=='__main__':
+    user = {
+        'user_id': '1234',
+        'item': ['apple'],
+        'duration': 2,
+        'start_time': 1675734534
+    }
