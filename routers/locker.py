@@ -27,7 +27,7 @@ class Locker(BaseModel):
     user: Union[User, None]
 
 def extra_fee(user:User):
-    actual_duration = (user['end_time'] - user['start_time'])
+    actual_duration = (time.time() - user['start_time'])
     user_duration = user['duration']*3600
     if actual_duration > (user_duration):
         charge_fee = ceil((actual_duration - user_duration)/360)*20
@@ -59,6 +59,16 @@ def find_available_locker() -> List:
     for i in data:
         available_lockers += [i]
     return available_lockers
+
+@router.get("/unavailable")
+def unavailable_locker() -> List:
+    """For checking available lockers."""
+    data = collection.find({"is_available": False}, {"_id": False})
+    available_lockers = []
+    for i in data:
+        available_lockers += [i]
+    return available_lockers
+
 
 @router.get("/return_items/{user_id}/{amount}")
 def return_item(user_id, amount: int):
@@ -119,7 +129,7 @@ def clear_locker(locker_num: str):
     if locker_num not in ["01", '02', '03', '04', '05', '06']:
         raise HTTPException(status_code=400, detail="Locker not found")
     locker_available = collection.find({"locker_num": locker_num})
-    if locker_available["is_available" == True]:
+    if locker_available[0]["is_available"]  == True:
         raise HTTPException(status_code=400, detail="Locker is already available")
     update_locker(locker_num, True, None)
     return {"msg": "Locker cleared successfully"}
