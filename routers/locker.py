@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, HTTPException
 from typing import Union, Optional, List
 from pydantic import BaseModel
 from datetime import timedelta, datetime
@@ -26,8 +26,18 @@ class Locker(BaseModel):
 @router.get("/available_lockers")
 def find_available_locker()->List:
     """ For checking available lockers."""
-    data = collection.find({"is_available": True})
+    data = collection.find({"is_available": True}, {"_id": False})
+    available_lockers = []
     for i in data:
-        print(i)
+        available_lockers += [i]
+    return available_lockers
+
+@router.get("/return_items/{user_id}")
+def return_item(user_id):
+    data = collection.find_one({"user.uer_id": user_id}, {"_id": False})
+    print(data)
+    if data is None:
+        raise HTTPException(status_code=400, detail="This user does not rent any locker.")
+    return {"msg": "return success"}
 
 
