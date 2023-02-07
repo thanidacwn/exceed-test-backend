@@ -18,7 +18,6 @@ class User(BaseModel):
     item: List[str]
     duration: int
     start_time: int
-    end_time: int
 
 
 class Locker(BaseModel):
@@ -43,13 +42,23 @@ def total_cost(user:User):
     total += add_fee
     return total
 
-def payment(amount:int, user:User):
+def payment(amount:int, user:User, locker_num):
     total = total_cost(user)
-    if amount > total:
+    if amount >= total:
+        clear_locker(locker_num)
         return f"your change is {amount - total} Baht"
-    if amount < total:
+    elif amount < total:
         return f"you need to insert {total - amount} more Baht"
-    return "Payment successful"
+
+def clear_locker(locker_num: str):
+    """ Clear a locker"""
+    if locker_num not in ["01", '02', '03', '04', '05', '06']:
+        raise HTTPException(status_code=400, detail="Locker not found")
+    locker_available = collection.find({"locker_num": locker_num})
+    if locker_available[0]["is_available"]  == True:
+        raise HTTPException(status_code=400, detail="Locker is already available")
+    update_locker(locker_num, True, None)
+    return {"msg": "Locker cleared successfully"}
 
 @router.get("/available_lockers")
 def find_available_locker() -> List:
@@ -81,7 +90,7 @@ def return_item(user_id, amount: int):
         raise HTTPException(
             status_code=400, detail="This user does not rent any locker."
         )
-    msg = payment(amount, data['user'])
+    msg = payment(amount, data['user'], data['locker_num'])
     return {"msg": msg}
 
 @router.get("/total_fee/{locker_id}")
@@ -121,15 +130,3 @@ def rent_locker(locker_num: str, item: List[str] = Body(), user_id = Body(), dur
         }
     update_locker(locker_num, False, user)
     return {"msg": "Locker rented successfully"}
-
-
-@router.get("/clear/{locker_num}")
-def clear_locker(locker_num: str):
-    """ Clear a locker"""
-    if locker_num not in ["01", '02', '03', '04', '05', '06']:
-        raise HTTPException(status_code=400, detail="Locker not found")
-    locker_available = collection.find({"locker_num": locker_num})
-    if locker_available[0]["is_available"]  == True:
-        raise HTTPException(status_code=400, detail="Locker is already available")
-    update_locker(locker_num, True, None)
-    return {"msg": "Locker cleared successfully"}
