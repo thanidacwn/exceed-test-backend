@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Body
-from typing import Union, Optional
+from fastapi import APIRouter, Body, HTTPException
+from typing import Union, Optional, List
 from pydantic import BaseModel
-from datetime import timedelta
 import time
 from math import ceil
+from datetime import timedelta, datetime
+from database.mongo_connection import *
 
 router = APIRouter(
     prefix="/locker",
@@ -12,17 +13,17 @@ router = APIRouter(
 )
 
 class User(BaseModel):
-    user_id : str
-    items : list[str]
-    duration : time
-    start_time : timedelta
-    end_time : timedelta
+    user_id: str
+    item: List[str]
+    duration: timedelta
+    start_time: datetime
+    end_time: datetime
 
 
 class Locker(BaseModel):
-    locker_num : int
-    is_available : bool
-    user : Union[User, None]
+    locker_num: str
+    is_available: bool
+    user: Union[User, None]
 
 def extra_fee(user:User):
     actual_duration = ((user.end_time.total_seconds()*0.0166667) - (user.start_time.total_seconds()*0.0166667))
@@ -48,9 +49,26 @@ def payment(amount:int, user:User):
         return f"you need to insert {total - amount} more Baht"
     return "Payment successful"
 
+@router.get("/available_lockers")
+def find_available_locker() -> List:
+    """For checking available lockers."""
+    data = collection.find({"is_available": True}, {"_id": False})
+    available_lockers = []
+    for i in data:
+        available_lockers += [i]
+    return available_lockers
 
+@router.get("/return_items/{user_id}")
+def return_item(user_id):
+    """This function is use for return item process.
 
-
-
-
+    It will check if user already done the payment or not before return it.
+    """
+    data = collection.find_one({"user.user_id": user_id}, {"_id": False})
+    print(data)
+    if data is None:
+        raise HTTPException(
+            status_code=400, detail="This user does not rent any locker."
+        )
+    return {"msg": "return success"}
 
